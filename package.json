@@ -1,0 +1,29 @@
+{
+  "name": "url-shortener-backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/surbhi-dot-gif/url-shortener-backend.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/surbhi-dot-gif/url-shortener-backend/issues"
+  },
+  "homepage": "https://github.com/surbhi-dot-gif/url-shortener-backend#readme",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "mongoose": "^9.0.0",
+    "nanoid": "^5.1.6",
+    "validator": "^13.15.23"
+  }
+}
