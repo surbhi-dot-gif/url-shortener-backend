@@ -1,73 +1,80 @@
-const validator = require("validator");
-
 const express = require("express");
+const validator = require("validator");
 const { nanoid } = require("nanoid");
 const Url = require("../models/Url");
+const verifyToken = require("../middleware/verifyToken");
 
 const router = express.Router();
 
-// Create short URL
-router.post("/shorten", async (req, res) => {
+const BASE_URL = process.env.BASE_URL || "http://localhost:5000";
+
+// CREATE SHORT URL (protected)
+router.post("/shorten", verifyToken, async (req, res) => {
   try {
     const { originalUrl } = req.body;
 
     if (!originalUrl) {
-      return res.status(400).json({ message: "Original URL required" });
+      return res.status(400).json({ message: "originalUrl is required" });
     }
 
-    // Validate URL format
     if (!validator.isURL(originalUrl)) {
       return res.status(400).json({ message: "Invalid URL format" });
     }
 
-    // Check if URL already shortened
-    const existing = await Url.findOne({ originalUrl });
+    const existing = await Url.findOne({
+      originalUrl,
+      owner: req.user.id,
+    });
+
     if (existing) {
       return res.json({
         shortUrl: existing.shortUrl,
-        message: "Short URL already exists (cached)",
+        shortCode: existing.shortCode,
+        clicks: existing.clicks,
+        createdAt: existing.createdAt,
+        message: "Short URL already exists",
       });
     }
 
-    // Generate new short URL
     const shortCode = nanoid(6);
-    const shortUrl = `http://localhost:5000/${shortCode}`;
+    const shortUrl = `${BASE_URL}/${shortCode}`;
 
-    const newUrl = new Url({
+    const newUrl = await Url.create({
       originalUrl,
       shortCode,
       shortUrl,
+      owner: req.user.id,
     });
-
-    await newUrl.save();
 
     res.json({
       shortUrl,
-      message: "URL shortened successfully",
+      shortCode,
+      createdAt: newUrl.createdAt,
     });
-  } catch (error) {
+  } catch {
     res.status(500).json({ message: "Server error" });
   }
 });
 
-// Redirect
+// REDIRECT
 router.get("/:code", async (req, res) => {
   try {
     const urlData = await Url.findOne({ shortCode: req.params.code });
 
-    if (!urlData) return res.status(404).json({ message: "URL not found" });
+    if (!urlData) {
+      return res.status(404).json({ message: "URL not found" });
+    }
 
     urlData.clicks += 1;
-await urlData.save();
+    await urlData.save();
 
-return res.redirect(urlData.originalUrl);
-
-  } catch (error) {
+    res.redirect(urlData.originalUrl);
+  } catch {
     res.status(500).json({ message: "Server error" });
   }
 });
 
-// Analytics route
+// ANALYTICS
 router.get("/stats/:code", async (req, res) => {
   try {
     const urlData = await Url.findOne({ shortCode: req.params.code });
@@ -81,8 +88,9 @@ router.get("/stats/:code", async (req, res) => {
       shortUrl: urlData.shortUrl,
       clicks: urlData.clicks,
       createdAt: urlData.createdAt,
+      owner: urlData.owner,
     });
-  } catch (error) {
+  } catch {
     res.status(500).json({ message: "Server error" });
   }
 });
